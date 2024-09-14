@@ -1,0 +1,163 @@
+{
+  "Comment": "HCP Terraform - AI debugger handler",
+  "StartAt": "request",
+  "States": {
+    "request": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${resource_request}:$LATEST",
+        "Payload": {
+          "job_name.$": "$$.Execution.Name",
+          "payload.$": "$",
+          "action": "request"
+        }
+      },
+      "InputPath" : "$",
+      "ResultPath": "$.result.request",
+      "OutputPath": "$",
+      "ResultSelector": {
+        "status.$": "$.Payload",
+        "raw.$": "$"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "verification",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "fail"
+        }
+      ]
+    },
+
+    "verification" : {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.result.request.status",
+          "StringEquals": "verified",
+          "Next": "verified"
+        },
+        {
+          "Variable": "$.result.request.status",
+          "StringEquals": "unverified",
+          "Next": "unverified"
+        }
+      ],
+      "Default": "fail"
+    },
+
+    "verified": {
+      "Type": "Pass",
+      "Next": "fulfillment"
+    },
+
+    "unverified": {
+      "Type": "Pass",
+      "Next": "callback"
+    },
+
+    "fulfillment": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${resource_fulfillment}:$LATEST",
+        "Payload": {
+          "job_name.$": "$$.Execution.Name",
+          "payload.$": "$",
+          "action": "fulfillment"
+        }
+      },
+      "InputPath" : "$",
+      "ResultPath": "$.result.fulfillment",
+      "OutputPath": "$",
+      "ResultSelector": {
+        "tfc_api_secret_name.$": "$.Payload.tfc_api_secret_name",
+        "content.$": "$.Payload.content",
+        "run_id.$": "$.Payload.run_id"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "callback",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "fail"
+        }
+      ]
+    },
+
+    "callback": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${resource_callback}:$LATEST",
+        "Payload": {
+          "job_name.$": "$$.Execution.Name",
+          "payload.$": "$",
+          "action": "callback"
+        }
+      },
+      "InputPath" : "$",
+      "ResultPath": "$.result.callback",
+      "OutputPath": "$",
+      "ResultSelector": {
+        "status.$": "$.Payload"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "success",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "fail"
+        }
+      ]
+    },
+
+    "fail": {
+      "Type": "Fail"
+    },
+
+    "success": {
+      "Type": "Succeed"
+    }
+  }
+}
