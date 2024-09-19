@@ -6,9 +6,11 @@ import hashlib
 import logging
 import requests
 import time
+import boto3
 
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
+from botocore.exceptions import ClientError
 
 logging.basicConfig(format="%(levelname)s: %(message)s")
 logger = logging.getLogger()
@@ -50,6 +52,24 @@ def get_run_error(hcp_tf_api_key: str, run_id: str) -> str:
     return None
 
 
+def get_hcp_tf_api_key(hcp_tf_api_key_arn):
+    hcp_tf_api_key = None
+
+    session = boto3.session.Session()
+    client = session.client(
+        service_name="secretsmanager",
+        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=hcp_tf_api_key_arn)
+    except ClientError as e:
+        logging.exception("Exception: {}".format(e))
+        return None
+
+    return get_secret_value_response["SecretString"]
+
+
 def validate_endpoint(endpoint):
     # validate that the endpoint hostname is valid
     pattern = r"^https://" + str(hcp_tf_host_name).replace(".", r"\.") + r"/.*"
@@ -65,34 +85,48 @@ def convert_to_markdown(result):
     return result
 
 
-def log_helper(cwl_client, log_group_name, log_stream_name, log_message): # helper function to write AI debugger results to dedicated cloudwatch log group
-    if log_group_name: # true if CW log group name is specified
+def log_helper(
+    cwl_client, log_group_name, log_stream_name, log_message
+):  # helper function to write AI debugger results to dedicated cloudwatch log group
+    if log_group_name:  # true if CW log group name is specified
         global SEQUENCE_TOKEN
         try:
-            SEQUENCE_TOKEN = log_writer(cwl_client, log_group_name, log_stream_name, log_message, SEQUENCE_TOKEN)["nextSequenceToken"]
+            SEQUENCE_TOKEN = log_writer(
+                cwl_client, log_group_name, log_stream_name, log_message, SEQUENCE_TOKEN
+            )["nextSequenceToken"]
         except:
-            cwl_client.create_log_stream(logGroupName = log_group_name,logStreamName = log_stream_name)
-            SEQUENCE_TOKEN = log_writer(cwl_client, log_group_name, log_stream_name, log_message)["nextSequenceToken"]
+            cwl_client.create_log_stream(
+                logGroupName=log_group_name, logStreamName=log_stream_name
+            )
+            SEQUENCE_TOKEN = log_writer(
+                cwl_client, log_group_name, log_stream_name, log_message
+            )["nextSequenceToken"]
 
 
-def log_writer(cwl_client, log_group_name, log_stream_name, log_message, sequence_token = False): # writer to CloudWatch log stream based on sequence token
-    if sequence_token: # if token exist, append to the previous token stream
+def log_writer(
+    cwl_client, log_group_name, log_stream_name, log_message, sequence_token=False
+):  # writer to CloudWatch log stream based on sequence token
+    if sequence_token:  # if token exist, append to the previous token stream
         response = cwl_client.put_log_events(
-            logGroupName = log_group_name,
-            logStreamName = log_stream_name,
-            logEvents = [{
-                'timestamp' : int(round(time.time() * 1000)),
-                'message' : time.strftime('%Y-%m-%d %H:%M:%S') + ": " + log_message
-            }],
-            sequenceToken = sequence_token
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            logEvents=[
+                {
+                    "timestamp": int(round(time.time() * 1000)),
+                    "message": time.strftime("%Y-%m-%d %H:%M:%S") + ": " + log_message,
+                }
+            ],
+            sequenceToken=sequence_token,
         )
-    else: # new log stream, no token exist
+    else:  # new log stream, no token exist
         response = cwl_client.put_log_events(
-            logGroupName = log_group_name,
-            logStreamName = log_stream_name,
-            logEvents = [{
-                'timestamp' : int(round(time.time() * 1000)),
-                'message' : time.strftime('%Y-%m-%d %H:%M:%S') + ": " + log_message
-            }]
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            logEvents=[
+                {
+                    "timestamp": int(round(time.time() * 1000)),
+                    "message": time.strftime("%Y-%m-%d %H:%M:%S") + ": " + log_message,
+                }
+            ],
         )
     return response

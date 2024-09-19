@@ -3,11 +3,20 @@
     "Statement": [
         {
             "Action": [
-                "access-analyzer:ValidatePolicy"
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue"
             ],
-            "Resource": "arn:${data_aws_partition}:access-analyzer:${data_aws_region}:${data_aws_account_id}:*",
+            "Resource": ${jsonencode(resource_ai_debugger_secrets)},
             "Effect": "Allow",
-            "Sid": "AccessAnalyzerOps"
+            "Sid": "SecretsManagerGet"
+        },
+        {
+            "Action": [
+              "kms:Decrypt"
+            ],
+            "Resource": "${ai_debugger_kms_arn}",
+            "Effect": "Allow",
+            "Sid": "KMSDecrypt"
         },
         {
             "Action": [

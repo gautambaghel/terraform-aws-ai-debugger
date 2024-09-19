@@ -3,7 +3,7 @@
 #####################################################################################
 
 resource "aws_kms_key" "ai_debugger_key" {
-  description         = "KMS key for ai debugger integration"
+  description         = "KMS key for AI debugger integration"
   policy              = data.aws_iam_policy_document.ai_debugger_key.json
   enable_key_rotation = true
   tags                = local.combined_tags

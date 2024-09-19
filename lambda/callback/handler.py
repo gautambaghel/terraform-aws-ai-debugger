@@ -19,9 +19,12 @@ import json
 import logging
 import os
 import re
+import boto3
+
+from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from botocore.exceptions import ClientError
 
 HCP_TF_HOST_NAME = os.environ.get("HCP_TF_HOST_NAME", "app.terraform.io")
 
@@ -36,28 +39,22 @@ def lambda_handler(event, context):
     logger.debug(json.dumps(event))
     try:
 
-        hcp_tf_api_key = get_hcp_tf_key(
-            event["payload"]["fulfillment"]["hcp_tf_api_secret_name"]
+        hcp_tf_api_key = get_hcp_tf_api_key(
+            event["payload"]["fulfillment"]["hcp_tf_api_key_arn"]
         )
-
-        if not hcp_tf_api_key:
-            comment_response = attach_comment(
-                f"Error retrieving token from AWS secrets manager. Please check the service logs for more details.",
-                hcp_tf_api_key,
-                event["payload"]["fulfillment"]["run_id"],
-            )
-            return "completed"
 
         logger.debug("Secrets manager: successfully retrieved HCP Terraform API key")
 
-        # Send comment back to Terraform Cloud
+        # Send comment back to HCP Terraform
         comment_response = attach_comment(
             event["payload"]["fulfillment"]["content"],
             hcp_tf_api_key,
             event["payload"]["fulfillment"]["run_id"],
         )
 
-        logging.info(f"Successfully created a comment in HCP Terraform. {comment_response}")
+        logging.info(
+            f"Successfully created a comment in HCP Terraform. {comment_response}"
+        )
         return "completed"
 
     except Exception as e:
@@ -65,20 +62,22 @@ def lambda_handler(event, context):
         raise
 
 
-def get_hcp_tf_key(hcp_tf_api_secret_name):
-    hcp_tf_api_secret_name = ""
+def get_hcp_tf_api_key(hcp_tf_api_key_arn):
+    hcp_tf_api_key = None
+
+    session = boto3.session.Session()
+    client = session.client(
+        service_name="secretsmanager",
+        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+    )
 
     try:
-        client = boto3.client("secretsmanager")
-        response = client.get_secret_value(SecretId=hcp_tf_api_secret_name)
-        hcp_tf_api_secret_name = response["SecretString"]
-
-    except Exception as e:
+        get_secret_value_response = client.get_secret_value(SecretId=hcp_tf_api_key_arn)
+    except ClientError as e:
         logging.exception("Exception: {}".format(e))
-        message = "Failed to get the HCP Terraform API key. Please check the secrets manager id and HCP Terraform API key priviledges."
         return None
 
-    return hcp_tf_api_secret_name
+    return get_secret_value_response["SecretString"]
 
 
 def attach_comment(comment, hcp_tf_api_key, run_id):
@@ -110,10 +109,10 @@ def attach_comment(comment, hcp_tf_api_key, run_id):
             comment_response_json = response.json()
             mesaage = f"Successfully created a comment in HCP Terraform."
         else:
-            message = f"Failed creating comment in Terraform Cloud, status code {response.status_code}."
-    
+            message = f"Failed creating comment in HCP Terraform, status code {response.status_code}."
+
     except Exception as e:
         logging.exception("Exception: {}".format(e))
-        message = "Failed to create comment in Terraform Cloud. Please check the Run id and Terraform API key."
+        message = "Failed to create comment in HCP Terraform. Please check the Run id and Terraform API key."
 
     return message

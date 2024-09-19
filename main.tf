@@ -10,7 +10,7 @@ resource "random_string" "solution_prefix" {
 
 resource "aws_cloudwatch_event_rule" "ai_debugger_rule" {
   name           = "${local.solution_prefix}-ai_debugger-rule"
-  description    = "Rule to capture HCP Terraform ai debugger events"
+  description    = "Rule to capture HCP Terraform AI debugger events"
   event_bus_name = var.event_bus_name
   event_pattern = templatefile("${path.module}/templates/ai_debugger_rule.tpl", {
     var_event_source = var.event_source

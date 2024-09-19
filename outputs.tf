@@ -1,6 +1,6 @@
 output "ai_debugger_hmac" {
   value       = aws_secretsmanager_secret_version.ai_debugger_hmac.secret_string
-  description = "HMAC key value, keep this sensitive data safe"
+  description = "HCP Terraform HMAC key value, keep this sensitive data safe"
   sensitive   = true
 }
 

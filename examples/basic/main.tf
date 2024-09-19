@@ -10,6 +10,11 @@ data "tfe_organization" "hcp_tf_org" {
   name = var.hcp_tf_org
 }
 
+data "tfe_oauth_client" "hcp_tf_client" {
+  organization     = data.tfe_organization.hcp_tf_org.name
+  service_provider = "github"
+}
+
 module "hcp_tf_ai_debugger" {
   source                = "../.."
   aws_region            = data.aws_region.current.name
@@ -20,9 +25,15 @@ module "hcp_tf_ai_debugger" {
 }
 
 resource "tfe_workspace" "demo_ws" {
-  auto_apply   = true
-  name         = "ai-debugger-demo"
-  organization = data.tfe_organization.hcp_tf_org.name
+  auto_apply            = false
+  file_triggers_enabled = false
+  name                  = "ai-debugger-demo"
+  organization          = data.tfe_organization.hcp_tf_org.name
+  vcs_repo {
+    identifier     = "gautambaghel/terraform-shell"
+    branch         = "error"
+    oauth_token_id = data.tfe_oauth_client.hcp_tf_client.oauth_token_id
+  }
 }
 
 resource "tfe_notification_configuration" "bedrock_ai_debugger" {

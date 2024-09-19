@@ -11,7 +11,7 @@ resource "terraform_data" "bootstrap" {
 ################# AI Debugger EventBridge ##################
 resource "aws_lambda_function" "ai_debugger_eventbridge" {
   function_name    = "${local.solution_prefix}-ai_debugger-eventbridge"
-  description      = "HCP Terraform ai debugger - EventBridge handler"
+  description      = "HCP Terraform AI debugger - EventBridge handler"
   role             = aws_iam_role.ai_debugger_eventbridge.arn
   architectures    = local.lambda_architecture
   source_code_hash = data.archive_file.ai_debugger_eventbridge.output_base64sha256
@@ -64,7 +64,7 @@ resource "aws_cloudwatch_log_group" "ai_debugger_eventbridge" {
 ################# AI Debugger request ##################
 resource "aws_lambda_function" "ai_debugger_request" {
   function_name                  = "${local.solution_prefix}-ai_debugger-request"
-  description                    = "HCP Terraform ai debugger - Request handler"
+  description                    = "HCP Terraform AI debugger - Request handler"
   role                           = aws_iam_role.ai_debugger_request.arn
   architectures                  = local.lambda_architecture
   source_code_hash               = data.archive_file.ai_debugger_request.output_base64sha256
@@ -99,7 +99,7 @@ resource "aws_cloudwatch_log_group" "ai_debugger_request" {
 ################# AI Debugger callback ##################
 resource "aws_lambda_function" "ai_debugger_callback" {
   function_name                  = "${local.solution_prefix}-ai_debugger-callback"
-  description                    = "HCP Terraform ai debugger - Callback handler"
+  description                    = "HCP Terraform AI debugger - Callback handler"
   role                           = aws_iam_role.ai_debugger_callback.arn
   architectures                  = local.lambda_architecture
   source_code_hash               = data.archive_file.ai_debugger_callback.output_base64sha256
@@ -128,7 +128,7 @@ resource "aws_cloudwatch_log_group" "ai_debugger_callback" {
 resource "aws_lambda_function" "ai_debugger_edge" {
   provider                       = aws.cloudfront_waf
   function_name                  = "${local.solution_prefix}-ai_debugger-edge"
-  description                    = "HCP Terraform ai debugger - Lambda@Edge handler"
+  description                    = "HCP Terraform AI debugger - Lambda@Edge handler"
   role                           = aws_iam_role.ai_debugger_edge.arn
   architectures                  = local.lambda_architecture
   source_code_hash               = data.archive_file.ai_debugger_edge.output_base64sha256
@@ -149,7 +149,7 @@ resource "aws_lambda_function" "ai_debugger_edge" {
 ################# AI Debugger Fulfillment ##################
 resource "aws_lambda_function" "ai_debugger_fulfillment" {
   function_name                  = "${local.solution_prefix}-ai_debugger-fulfillment"
-  description                    = "HCP Terraform ai debugger - Fulfillment handler"
+  description                    = "HCP Terraform AI debugger - Fulfillment handler"
   role                           = aws_iam_role.ai_debugger_fulfillment.arn
   architectures                  = local.lambda_architecture
   source_code_hash               = data.archive_file.ai_debugger_fulfillment.output_base64sha256
@@ -164,7 +164,7 @@ resource "aws_lambda_function" "ai_debugger_fulfillment" {
   environment {
     variables = {
       CW_LOG_GROUP_NAME         = local.cloudwatch_log_group_name
-      hcp_tf_secret_name        = aws_secretsmanager_secret.ai_debugger_hmac.name
+      HCP_TF_API_KEY_ARN        = aws_secretsmanager_secret.hcp_tf_api_key.arn
       BEDROCK_LLM_MODEL         = var.bedrock_llm_model
       BEDROCK_GUARDRAIL_ID      = awscc_bedrock_guardrail.ai_debugger_fulfillment.guardrail_id
       BEDROCK_GUARDRAIL_VERSION = awscc_bedrock_guardrail_version.ai_debugger_fulfillment.version
