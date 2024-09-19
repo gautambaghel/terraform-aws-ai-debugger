@@ -85,7 +85,7 @@
       "ResultPath": "$.result.fulfillment",
       "OutputPath": "$",
       "ResultSelector": {
-        "tfc_api_secret_name.$": "$.Payload.tfc_api_secret_name",
+        "hcp_tf_api_key_arn.$": "$.Payload.hcp_tf_api_key_arn",
         "content.$": "$.Payload.content",
         "run_id.$": "$.Payload.run_id"
       },

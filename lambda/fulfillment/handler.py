@@ -40,13 +40,14 @@ def lambda_handler(event, _):
         hcp_tf_api_key = hcp_tf_utils.get_hcp_tf_api_key(hcp_tf_api_key_arn)
         if not hcp_tf_api_key:
             ai_debugger_response["content"] = (
-                f"Error retrieving token from AWS secrets manager. Please check the service logs for more details."
+                f"Error retrieving HCP TF API token from AWS secrets manager. Please check the service logs for more details."
             )
             return ai_debugger_response
 
         logger.debug("Secrets manager: successfully retrieved HCP Terraform API key")
 
         run_id = event["payload"]["detail"]["run_id"]
+        ai_debugger_response["run_id"] = run_id
 
         # Get error from HCP Terraform
         run_error_response = hcp_tf_utils.get_run_error(hcp_tf_api_key, run_id)
@@ -55,15 +56,15 @@ def lambda_handler(event, _):
                 f"No plan/apply error found in the HCP Terraform run."
             )
             return ai_debugger_response
+
         logger.debug("HCP Terraform run error: " + str(run_error_response))
-
         content = ai.eval(run_error_response)
-
         logger.info("AWS Bedrock response: " + str(content))
-        logger.debug("Delivering payload to callback Lambda Function")
 
         # Deliver the payload to callback lambda function
         ai_debugger_response["content"] = content
+        logger.debug(f"Delivering payload to callback Lambda Function {json.dumps(ai_debugger_response)}")
+
         return ai_debugger_response
 
     except Exception as e:

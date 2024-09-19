@@ -66,6 +66,7 @@ resource "aws_iam_role_policy" "ai_debugger_callback" {
   name = "${local.solution_prefix}-ai_debugger-callback-policy"
   role = aws_iam_role.ai_debugger_callback.id
   policy = templatefile("${path.module}/templates/role-policies/ai-debugger-callback-lambda-role-policy.tpl", {
+    ai_debugger_kms_arn          = aws_kms_key.ai_debugger_key.arn
     resource_ai_debugger_secrets = [aws_secretsmanager_secret.hcp_tf_api_key.arn]
   })
 }

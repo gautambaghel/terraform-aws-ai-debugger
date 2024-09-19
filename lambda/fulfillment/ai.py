@@ -52,6 +52,7 @@ def eval(tf_plan_err_msg):
     if not guardrail_status:
         ai_response = "Bedrock guardrail triggered : {}".format(guardrail_response)
 
+    ai_response = f":sparkles: Terraform AI debugger (powered by AWS Bedrock: {model_id}) :sparkles: \n\n + {ai_response}"
     return ai_response
 
 

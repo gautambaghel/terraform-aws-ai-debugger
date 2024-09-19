@@ -3,6 +3,14 @@
     "Statement": [
         {
             "Action": [
+            "kms:Decrypt"
+            ],
+            "Resource": "${ai_debugger_kms_arn}",
+            "Effect": "Allow",
+            "Sid": "KMSDecrypt"
+        },
+        {
+            "Action": [
                 "secretsmanager:DescribeSecret",
                 "secretsmanager:GetSecretValue"
             ],

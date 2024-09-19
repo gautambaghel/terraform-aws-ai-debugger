@@ -40,21 +40,25 @@ def lambda_handler(event, context):
     try:
 
         hcp_tf_api_key = get_hcp_tf_api_key(
-            event["payload"]["fulfillment"]["hcp_tf_api_key_arn"]
+            event["payload"]["result"]["fulfillment"]["hcp_tf_api_key_arn"]
         )
+
+        if not hcp_tf_api_key:
+            logger.error(
+                f"Error retrieving HCP TF API token from AWS secrets manager. Please check the service logs for more details."
+            )
+            return "completed"
 
         logger.debug("Secrets manager: successfully retrieved HCP Terraform API key")
 
         # Send comment back to HCP Terraform
         comment_response = attach_comment(
-            event["payload"]["fulfillment"]["content"],
+            event["payload"]["result"]["fulfillment"]["content"],
             hcp_tf_api_key,
-            event["payload"]["fulfillment"]["run_id"],
+            event["payload"]["result"]["fulfillment"]["run_id"],
         )
 
-        logging.info(
-            f"Successfully created a comment in HCP Terraform. {comment_response}"
-        )
+        logger.info("HCP Terraform response: {}".format(comment_response))
         return "completed"
 
     except Exception as e:
@@ -89,30 +93,39 @@ def attach_comment(comment, hcp_tf_api_key, run_id):
     :param run_id: The run id to attach the comment
     :return: response as string
     """
-    message = ""
+    headers = {
+        "Authorization": f"Bearer {hcp_tf_api_key}",
+        "Content-Type": "application/vnd.api+json",
+    }
+
+    url = f"https://{HCP_TF_HOST_NAME}/api/v2/runs/{run_id}/comments"
+    payload = {
+        "data": {
+            "attributes": {"body": f"{comment}"},
+            "type": "comments",
+        }
+    }
+    data = bytes(json.dumps(payload), encoding="utf-8")
+    request = Request(url, headers=headers, data=data, method="POST")
     try:
-        headers = {
-            "Authorization": f"Bearer {hcp_tf_api_key}",
-            "Content-Type": "application/vnd.api+json",
-        }
-
-        url = f"https://{HCP_TF_HOST_NAME}/api/v2/runs/{run_id}/comments"
-        data = {
-            "data": {
-                "attributes": {"body": comment},
-                "type": "comments",
-            }
-        }
-
-        response = requests.post(url, headers=headers, data=data)
-        if 200 <= response.status_code < 300:
-            comment_response_json = response.json()
-            mesaage = f"Successfully created a comment in HCP Terraform."
+        if validate_endpoint(url):
+            with urlopen(request, timeout=10) as response:  # nosec URL validation
+                return response.read()
         else:
-            message = f"Failed creating comment in HCP Terraform, status code {response.status_code}."
+            raise URLError(
+                f"Invalid endpoint URL, expected host is: {HCP_TF_HOST_NAME}"
+            )
+    except HTTPError as error:
+        logger.error(f"HTTPError: {error.status} - {error.reason}")
+    except URLError as error:
+        logger.error(f"URLError: {error.reason}")
+    except TimeoutError:
+        logger.error("Request timed out")
 
-    except Exception as e:
-        logging.exception("Exception: {}".format(e))
-        message = "Failed to create comment in HCP Terraform. Please check the Run id and Terraform API key."
+    return "Failed to create comment in HCP Terraform. Please check the Run Id and Terraform API key."
 
-    return message
+
+def validate_endpoint(endpoint):  # validate that the endpoint hostname is valid
+    pattern = "^https:\/\/" + str(HCP_TF_HOST_NAME).replace(".", "\.") + "\/" + ".*"
+    result = re.match(pattern, endpoint)
+    return result
