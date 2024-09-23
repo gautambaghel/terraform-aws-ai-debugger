@@ -118,6 +118,7 @@ def log_writer(
             ],
             sequenceToken=sequence_token,
         )
+
     else:  # new log stream, no token exist
         response = cwl_client.put_log_events(
             logGroupName=log_group_name,
@@ -129,4 +130,5 @@ def log_writer(
                 }
             ],
         )
+
     return response

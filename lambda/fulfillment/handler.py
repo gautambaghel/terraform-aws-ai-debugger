@@ -86,4 +86,5 @@ def lambda_handler(event, _):
             ),
             "run_id": run_id,
         }
+
         return ai_debugger_response

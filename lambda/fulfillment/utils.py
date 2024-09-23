@@ -63,25 +63,30 @@ def stream_messages(
     for chunk in response["stream"]:
         if "messageStart" in chunk:
             message["role"] = chunk["messageStart"]["role"]
+
         elif "contentBlockStart" in chunk:
             tool = chunk["contentBlockStart"]["start"]["toolUse"]
             tool_use["toolUseId"] = tool["toolUseId"]
             tool_use["name"] = tool["name"]
+
         elif "contentBlockDelta" in chunk:
             delta = chunk["contentBlockDelta"]["delta"]
             if "toolUse" in delta:
                 if "input" not in tool_use:
                     tool_use["input"] = ""
                 tool_use["input"] += delta["toolUse"]["input"]
+
             elif "text" in delta:
                 text += delta["text"]
                 if logging.root.level <= logging.INFO:
                     logger.debug(delta["text"], end="")
+
         elif "contentBlockStop" in chunk:
             if "input" in tool_use:
                 tool_use["input"] = json.loads(tool_use["input"])
                 content.append({"toolUse": tool_use})
                 tool_use = {}
+
             else:
                 content.append({"text": text})
                 text = ""
