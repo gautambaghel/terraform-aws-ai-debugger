@@ -3,7 +3,7 @@
 
 Use this module to develop HCP Terraform AI debugger and deploy it in AWS.
 
-![Diagram](./images/arch.png)
+![Diagram](./images/ai-debugger.png)
 
 ## Prerequisites
 
