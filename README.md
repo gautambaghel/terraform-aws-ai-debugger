@@ -1,19 +1,31 @@
 <!-- BEGIN_TF_DOCS -->
 # terraform-aws-ai-debugger
 
-Use this module to develop HCP Terraform AI debugger and deploy it in AWS.
+The AI debugger for Terraform is a solution designed to address runtime issues, enhancing the identification and resolution of challenges in deploying infrastructure through Terraform. It leverages AWS and HCP Terraform to optimize the remediation process.
 
 ![Demo](./images/aws-ai-debugger-demo.gif)
 
 ## Architecture
 
+The diagram below shows the Terraform AI debugger components leveraging low cost serverless AWS resources.
+
 ![Diagram](./images/ai-debugger.png)
+
+Resources created in AWS are:
+
+* Bedrock - Anthropic Claude 3 sonnet
+* Lambda Functions - request, fulfillment, call back, edge (optional)
+* Step functions
+* Secrets Manager
+* Eventbridge
+* Cloudfront
+* WAFv2 (optional)
 
 ## Prerequisites
 
 To use this module you need have the following:
 
-1. AWS account and credentials
+1. AWS account and credentials with Bedrock - Anthropic Claude enabled
 1. HCP Terraform account
 
 ## Usage
